@@ -2269,19 +2269,24 @@ class Worker
 
     /**
      * croutines Loop
+     * @param $order the coroutine order
      * @return void
      */
-    public function coroutinesLoopController(){
-        //check and push coroutine
-        for($i=count(static::$g_coroutine_array)-1;$i>=0;$i--){
-            $it = static::$g_coroutine_array[$i];
+    public function coroutinesLoopController($idx=-1){
+        $cnt = count(static::$g_coroutine_array);
+        if($idx<0){
+            $idx = $cnt-1;
+        }
+        if($cnt>0){
+            $it = static::$g_coroutine_array[$idx];
             if($it->valid()){
                 $it->next();
             }else{
                 //coroutine done，delete coroutine from queue
-                array_splice(static::$g_coroutine_array,$i,1);
+                array_splice(static::$g_coroutine_array,$idx,1);
             }
         }
-        static::$globalEvent->add(SIGINT, EventInterface::EV_TIMER_ONCE, array($this, 'coroutinesLoopController'));
+        $idx--;
+        static::$globalEvent->add(0.001, EventInterface::EV_TIMER_ONCE, array($this, 'coroutinesLoopController'),$idx);
     }
 }
