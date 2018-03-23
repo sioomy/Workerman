@@ -592,7 +592,7 @@ class Worker
                 $worker->coroutineMessage = function($connection,$recv_buffer) use ($worker){
                     //process request，if have commond yied push to coroutine queue
                     $r = call_user_func($worker->onMessage, $connection, $recv_buffer);
-                    if(method_exists($r,"current")){
+                    if(method_exists($r,"current")&&defined("WORKERMAN_COROUTINE_LOOP_TIME")){
                         $r->current();//first triger coroutine
                         //将任务加入到协程队列
                         array_push(static::$g_coroutine_array,$r);
@@ -2273,6 +2273,7 @@ class Worker
      * @return void
      */
     public function coroutinesLoopController($idx=-1){
+        if(!defined("WORKERMAN_COROUTINE_LOOP_TIME"))return false;
         $cnt = count(static::$g_coroutine_array);
         if($idx<0){
             $idx = $cnt-1;
@@ -2287,6 +2288,6 @@ class Worker
             }
         }
         $idx--;
-        static::$globalEvent->add(0.001, EventInterface::EV_TIMER_ONCE, array($this, 'coroutinesLoopController'),$idx);
+        static::$globalEvent->add(WORKERMAN_COROUTINE_LOOP_TIME, EventInterface::EV_TIMER_ONCE, array($this, 'coroutinesLoopController'),$idx);
     }
 }
