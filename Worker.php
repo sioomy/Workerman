@@ -2152,7 +2152,9 @@ class Worker
                 exit(250);
             }
         }
-        $this->coroutinesLoopController();
+        if(defined("WORKERMAN_COROUTINE_LOOP_TIME")){
+            static::$globalEvent->add(WORKERMAN_COROUTINE_LOOP_TIME, EventInterface::EV_TIMER, array($this, 'coroutinesLoopController'));
+        }
         // Main loop.
         static::$globalEvent->loop();
     }
@@ -2272,8 +2274,8 @@ class Worker
      * @param $order the coroutine order
      * @return void
      */
-    public function coroutinesLoopController($idx=-1){
-        if(!defined("WORKERMAN_COROUTINE_LOOP_TIME"))return false;
+    public function coroutinesLoopController(){
+        static $idx = -1;
         $cnt = count(static::$g_coroutine_array);
         if($idx<0){
             $idx = $cnt-1;
@@ -2288,6 +2290,5 @@ class Worker
             }
         }
         $idx--;
-        static::$globalEvent->add(WORKERMAN_COROUTINE_LOOP_TIME, EventInterface::EV_TIMER_ONCE, array($this, 'coroutinesLoopController'),$idx);
     }
 }
