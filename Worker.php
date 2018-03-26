@@ -2272,8 +2272,7 @@ class Worker
      * @return void
      */
     public static function coroutinesLoopController($hash_key,$data){
-
-
+        if(!isset(static::$g_coroutine_array[$hash_key]))return;
         $it = static::$g_coroutine_array[$hash_key];
         if($it->valid()){
             $_hash_key = $it->send($data);
