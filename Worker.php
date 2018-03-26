@@ -592,10 +592,10 @@ class Worker
                 $worker->coroutineMessage = function($connection,$recv_buffer) use ($worker){
                     //process request，if have commond yied push to coroutine queue
                     $r = call_user_func($worker->onMessage, $connection, $recv_buffer);
-                    if(method_exists($r,"current")&&defined("WORKERMAN_COROUTINE_LOOP_TIME")){
-                        $r->current();//first triger coroutine
-                        //将任务加入到协程队列
-                        array_push(static::$g_coroutine_array,$r);
+                    if(method_exists($r,"current")){
+                        $hash_key = $r->current();//first triger coroutine
+                        //push to coroutine queue
+                        static::$g_coroutine_array[$hash_key] = $r;
                     }
                 };
             }
@@ -2152,9 +2152,6 @@ class Worker
                 exit(250);
             }
         }
-        if(defined("WORKERMAN_COROUTINE_LOOP_TIME")){
-            static::$globalEvent->add(WORKERMAN_COROUTINE_LOOP_TIME, EventInterface::EV_TIMER, array($this, 'coroutinesLoopController'));
-        }
         // Main loop.
         static::$globalEvent->loop();
     }
@@ -2274,21 +2271,18 @@ class Worker
      * @param $order the coroutine order
      * @return void
      */
-    public function coroutinesLoopController(){
-        static $idx = -1;
-        $cnt = count(static::$g_coroutine_array);
-        if($idx<0){
-            $idx = $cnt-1;
+    public static function coroutinesLoopController($hash_key,$data){
+
+
+        $it = static::$g_coroutine_array[$hash_key];
+        if($it->valid()){
+            $_hash_key = $it->send($data);
+            static::$g_coroutine_array[$_hash_key]=$it;
         }
-        if($cnt>0){
-            $it = static::$g_coroutine_array[$idx];
-            if($it->valid()){
-                $it->next();
-            }else{
-                //coroutine done，delete coroutine from queue
-                array_splice(static::$g_coroutine_array,$idx,1);
-            }
-        }
-        $idx--;
+        unset(static::$g_coroutine_array[$hash_key]);
+    }
+    public static function generateCoroutineHashKey(){
+        static $idx = 0;
+        return md5(time()."_".(++$idx));
     }
 }
